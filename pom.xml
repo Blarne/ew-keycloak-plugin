@@ -1,0 +1,114 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    
+    <groupId>com.karumien.cloud.sso</groupId>
+    <artifactId>ew-keycloak-plugin</artifactId>
+    <version>1.0.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
+
+    <name>EW: KeyCloak Plugin SPI</name>
+
+    <scm>
+        <connection>https://github.com/Blarne/ew-keycloak-plugin.git</connection>
+        <developerConnection>https://github.com/Blarne/ew-keycloak-plugin.git</developerConnection>
+        <tag>HEAD</tag>
+    </scm>
+
+    <properties>
+        <java.version>1.8</java.version>
+        <!-- maven.compiler.release>11</maven.compiler.release -->
+        <maven.compiler.source>${java.version}</maven.compiler.source>
+        <maven.compiler.target>${java.version}</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+
+        <keycloak.version>8.0.1</keycloak.version>
+    </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-server-spi-private</artifactId>
+            <version>${keycloak.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-server-spi</artifactId>
+            <version>${keycloak.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-core</artifactId>
+            <version>${keycloak.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-services</artifactId>
+            <version>${keycloak.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-model-jpa</artifactId>
+            <version>${keycloak.version}</version>
+            <scope>provided</scope>
+        </dependency>
+        <!-- dependency>
+            <groupId>org.jboss.spec.javax.ws.rs</groupId>
+            <artifactId>jboss-jaxrs-api_2.1_spec</artifactId>
+        </dependency -->
+    </dependencies>
+
+    <developers>
+        <developer>
+            <id>miroslav.svoboda</id>
+            <name>Miroslav Svoboda</name>
+            <email>miroslav.svoboda@karumien.com</email>
+            <url>https://www.linkedin.com/in/imsvoboda/</url>
+            <organization>Karumien s.r.o.</organization>
+            <organizationUrl>http://www.karumien.com</organizationUrl>
+            <roles>
+                <role>architect</role>
+                <role>developer</role>
+            </roles>
+            <properties>
+                <picUrl>https://www.gravatar.com/avatar/de16f0919f18dd59aecabfb0b98ae762</picUrl>
+            </properties>
+        </developer>
+        <developer>
+            <id>viliam.litavec</id>
+            <name>Viliam Litavec</name>
+            <email>viliam.litavec@karumien.com</email>
+            <url>https://www.linkedin.com/in/vl-b5978393/</url>
+            <organization>Karumien s.r.o.</organization>
+            <organizationUrl>http://www.karumien.com</organizationUrl>
+            <roles>
+                <role>developer</role>
+            </roles>
+            <properties>
+                <picUrl>https://www.gravatar.com/avatar/eaa4704721b5bd598aa335e3f8267c69</picUrl>
+            </properties>
+        </developer>
+    </developers>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+        </license>
+        <license>
+            <name>MIT License</name>
+            <url>http://www.slf4j.org/license.html</url>
+            <comments>
+                The portion of LogstashBasicMarker.java that has been copied from 
+                org.slf4j.helpers.BasicMarker is released under the MIT License.
+            </comments>
+        </license>
+    </licenses>
+
+</project>
