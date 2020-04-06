@@ -54,7 +54,7 @@ public class LastLoginEventListenerProvider implements EventListenerProvider
     @Override
     public void onEvent(Event event) {
     
-        if (event.getType() != EventType.LOGIN && event.getType() != EventType.LOGIN_ERROR && event.getType() != EventType.LOGOUT) {
+        if (event.getType() != EventType.LOGIN && event.getType() != EventType.LOGIN_ERROR && event.getType() != EventType.LOGOUT || event.getUserId() == null) {
             return;
         }
 
