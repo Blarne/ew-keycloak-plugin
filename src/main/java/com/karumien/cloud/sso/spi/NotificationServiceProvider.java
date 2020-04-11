@@ -60,7 +60,7 @@ public class NotificationServiceProvider implements EmailSenderProvider {
     
     private MessageRequest messageTest() {
         MessageRequest message = new MessageRequest();
-        message.setMessageCode("NOPASSWORDREQUESTINFO");
+        message.setMessageCode("TEST");
         
         List<MessageParameter> params = new ArrayList<>();
         MessageParameter mp = new MessageParameter();
@@ -147,8 +147,8 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         message.setLanguage(user.getFirstAttribute("locale"));
         message.setRecipients(recipients);
         
-        String requestUrl = String.format("http%s://%s:%s%s", 
-            (ssl ? "s" : ""), config.get("host"), config.get("port"), config.get("fromDisplayName"));
+        String requestUrl = String.format("http%s://%s"+ (config.get("port") != null ? ":" + config.get("port"): "") +"%s", 
+            (ssl ? "s" : ""), config.get("host"), config.get("fromDisplayName"));
 
         log.info("SOAP:" + soap + ", " + requestUrl);
         if (auth) {
