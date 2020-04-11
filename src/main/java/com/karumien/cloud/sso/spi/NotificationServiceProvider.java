@@ -13,6 +13,13 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
+
 import org.jboss.logging.Logger;
 import org.keycloak.email.EmailException;
 import org.keycloak.email.EmailSenderProvider;
@@ -34,7 +41,7 @@ public class NotificationServiceProvider implements EmailSenderProvider {
     private static final Logger log = Logger.getLogger(NotificationServiceProvider.class);
     private final static String DEFAULT_DATE_TIME_FORMAT = "dd.MM.yyyy HH:mm";
     
-    private static final List<String> SUPPORTED = Arrays.asList("RESET_PASSWORD");
+    private static final List<String> SUPPORTED = Arrays.asList("RESET_PASSWORD", "TEST_MESSAGE");
     
     private String environment;
     
@@ -50,51 +57,27 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         // do nothing
     }
 
-    /**
-     * {@inheritDoc}
-     */
-    @Override
-    public void send(Map<String, String> config, UserModel user, String subject, String textBody, String htmlBody) throws EmailException {
-        
-        if (!SUPPORTED.contains(subject)) {
-            return;
-        }
-        
-        //log.info(htmlBody);
-        
-        htmlBody = htmlBody.substring(htmlBody.indexOf("<p>") + 3);
-        htmlBody = htmlBody.substring(0, htmlBody.indexOf("</p>"));
-        
-//        String[] keys = subject.split(",");
-//        log.info(keys);
-//        String[] vals = htmlBody.split("</p><p>");
-//        log.info(vals);
-//        
-//        Map<String, String> inputs = new HashMap<>();
-//        for (int i = 0; i < keys.length; i++) {
-//            inputs.put(keys[i], vals[i]);
-//        }
-        
-//        log.info(subject);
-//        log.info(textBody);
-//        log.info(htmlBody);
-//        log.info(environment);
-//        for(String key : config.keySet()) {
-//            log.info(key + " = " + config.get(key));
-//        }
-//        log.info(user);
-        
+    
+    private MessageRequest messageTest() {
         MessageRequest message = new MessageRequest();
-        message.setSource("Keycloak");
-        message.setLanguage(user.getFirstAttribute("locale"));
+        message.setMessageCode("NOPASSWORDREQUESTINFO");
+        
+        List<MessageParameter> params = new ArrayList<>();
+        MessageParameter mp = new MessageParameter();
+        mp.setIsVariable(false);
+        mp.setParameterType(ParameterType.BODY);
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern(DEFAULT_DATE_TIME_FORMAT);        
+        mp.setValue(LocalDateTime.now().format(formatter));
+        params.add(mp);   
+
+        message.setParameters(params);
+        return message;
+    }
+    
+    private MessageRequest messageResetPassword(String link, String username) {
+        MessageRequest message = new MessageRequest();
         message.setMessageCode("PASSWORDREQUESTKEYCLOAK");
         
-        List<MessageRecipient> recipients = new ArrayList<>();
-        MessageRecipient recipient = new MessageRecipient();
-        recipient.setName(user.getFirstName() + " " + user.getLastName());
-        recipient.setAddress(user.getEmail());
-        recipients.add(recipient);
-
         List<MessageParameter> params = new ArrayList<>();
         MessageParameter mp = new MessageParameter();
         mp.setIsVariable(false);
@@ -106,19 +89,104 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         mp = new MessageParameter();
         mp.setIsVariable(false);
         mp.setParameterType(ParameterType.BODY);
-        mp.setValue(htmlBody);
+        mp.setValue(link);
         params.add(mp);   
         
         mp = new MessageParameter();
         mp.setIsVariable(false);
         mp.setParameterType(ParameterType.BODY);
-        mp.setValue(user.getUsername());
+        mp.setValue(username);
         params.add(mp);   
         
-        message.setRecipients(recipients);
         message.setParameters(params);
+        return message; 
+    }
         
+    
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void send(Map<String, String> config, UserModel user, String subject, String textBody, String htmlBody) throws EmailException {
+        
+        if (!SUPPORTED.contains(subject)) {
+            return;
+        }
+        
+        boolean auth = "true".equals(config.get("auth"));
+        boolean ssl = "true".equals(config.get("ssl"));
+        boolean soap = "true".equals(config.get("starttls"));
+        
+        MessageRequest message = null;
+        
+        // Test message
+        if ("TEST_MESSAGE".equals(subject)) {
+            message = messageTest();
+        }
+        
+        // Reset password message
+        if ("RESET_PASSWORD".equals(subject)) {
+
+            String link = htmlBody.substring(htmlBody.indexOf("<p>") + 3);
+            link = link.substring(0, htmlBody.indexOf("</p>"));
+
+            message = messageResetPassword(link, user.getUsername());
+        }
+
+        if (ssl && !"PROD".equalsIgnoreCase(environment)) {
+            disableCertificatesValidation();
+        }
+        
+        List<MessageRecipient> recipients = new ArrayList<>();
+        MessageRecipient recipient = new MessageRecipient();
+        recipient.setName(user.getFirstName() + " " + user.getLastName());
+        recipient.setAddress(user.getEmail());
+        recipients.add(recipient);        
+        
+        message.setSource(config.get("from"));
+        message.setLanguage(user.getFirstAttribute("locale"));
+        message.setRecipients(recipients);
+        
+        String requestUrl = String.format("http%s://%s:%s%s", 
+            (ssl ? "s" : ""), config.containsKey("host"), config.get("port"), config.get("fromDisplayName"));
+
+        log.info("SOAP:" + soap + ", " + requestUrl);
+        if (auth) {
+            log.info("client: " + config.get("user") + ", secret: " + config.get("password"));
+        }
+
         log.info(environment + "->" + message);
+    }
+    
+    public static void disableCertificatesValidation() {
+        TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
+
+            @Override
+            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                return null;
+            }
+
+            @Override
+            public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+            }
+
+            @Override
+            public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
+            }
+        } };
+
+        // Install the all-trusting trust manager
+        try {
+            SSLContext sc = SSLContext.getInstance("SSL");
+            sc.init(null, trustAllCerts, new java.security.SecureRandom());
+            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
+            HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {
+                public boolean verify(String hostname, SSLSession session) {
+                    return true;
+                }
+            });
+        } catch (Exception e) {
+        }
     }
     
 }
