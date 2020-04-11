@@ -148,7 +148,7 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         message.setRecipients(recipients);
         
         String requestUrl = String.format("http%s://%s:%s%s", 
-            (ssl ? "s" : ""), config.containsKey("host"), config.get("port"), config.get("fromDisplayName"));
+            (ssl ? "s" : ""), config.get("host"), config.get("port"), config.get("fromDisplayName"));
 
         log.info("SOAP:" + soap + ", " + requestUrl);
         if (auth) {
