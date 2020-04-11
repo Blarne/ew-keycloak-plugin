@@ -6,11 +6,14 @@
  */
 package com.karumien.cloud.sso.spi;
 
+import java.io.StringWriter;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 import javax.net.ssl.HostnameVerifier;
@@ -29,6 +32,9 @@ import com.karumien.cloud.sso.api.model.MessageParameter;
 import com.karumien.cloud.sso.api.model.MessageRecipient;
 import com.karumien.cloud.sso.api.model.MessageRequest;
 import com.karumien.cloud.sso.api.model.ParameterType;
+
+import freemarker.template.Configuration;
+import freemarker.template.Template;
 
 /**
  * Sending emails over Notification Service.
@@ -131,6 +137,7 @@ public class NotificationServiceProvider implements EmailSenderProvider {
             link = link.substring(0, htmlBody.indexOf("</p>"));
 
             message = messageResetPassword(link, user.getUsername());
+            
         }
 
         if (ssl && !"PROD".equalsIgnoreCase(environment)) {
@@ -153,6 +160,27 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         log.info("SOAP: " + soap + ", " + requestUrl);
         if (auth) {
             log.info("client: " + config.get("user") + ", secret: " + config.get("password"));
+        }
+        
+        Configuration cfg = new Configuration(Configuration.VERSION_2_3_0);
+        cfg.setDefaultEncoding("UTF-8");
+        cfg.setLocale(Locale.US);
+
+        // Where do we load the templates from:
+        cfg.setClassForTemplateLoading(NotificationServiceProvider.class, "templates");
+
+        Map<String, Object> context = new HashMap<>();
+        context.put("message", message);
+
+        StringWriter out = new StringWriter();
+        
+        try {
+            Template template = cfg.getTemplate("message-soap.ftl");
+            template.process(message, out);
+            
+            log.info(out.getBuffer().toString());            
+        } catch (Exception e) {
+            throw new IllegalStateException(e);
         }
 
         log.info(environment + "->" + message);
