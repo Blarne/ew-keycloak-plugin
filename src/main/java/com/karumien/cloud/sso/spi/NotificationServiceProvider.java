@@ -143,14 +143,14 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         recipient.setAddress(user.getEmail());
         recipients.add(recipient);        
         
-        message.setSource(config.get("from"));
+        message.setSource(config.get("fromDisplayName"));
         message.setLanguage(user.getFirstAttribute("locale"));
         message.setRecipients(recipients);
         
         String requestUrl = String.format("http%s://%s"+ (config.get("port") != null ? ":" + config.get("port"): "") +"%s", 
-            (ssl ? "s" : ""), config.get("host"), config.get("fromDisplayName"));
+            (ssl ? "s" : ""), config.get("host"), config.get("replyToDisplayName"));
 
-        log.info("SOAP:" + soap + ", " + requestUrl);
+        log.info("SOAP: " + soap + ", " + requestUrl);
         if (auth) {
             log.info("client: " + config.get("user") + ", secret: " + config.get("password"));
         }
