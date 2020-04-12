@@ -165,8 +165,6 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         Configuration cfg = new Configuration(Configuration.VERSION_2_3_0);
         cfg.setDefaultEncoding("UTF-8");
         cfg.setLocale(Locale.US);
-
-        // Where do we load the templates from:
         cfg.setClassForTemplateLoading(NotificationServiceProvider.class, "templates");
 
         Map<String, Object> context = new HashMap<>();
