@@ -68,6 +68,11 @@
             <artifactId>freemarker</artifactId>
             <version>2.3.30</version>
         </dependency>
+        <dependency>
+            <groupId>org.apache.httpcomponents</groupId>
+            <artifactId>httpclient</artifactId>
+            <version>4.5.10</version>
+        </dependency>
         
         <!-- dependency>
             <groupId>org.jboss.spec.javax.ws.rs</groupId>

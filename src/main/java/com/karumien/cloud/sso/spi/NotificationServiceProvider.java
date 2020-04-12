@@ -7,10 +7,6 @@
 package com.karumien.cloud.sso.spi;
 
 import java.io.StringWriter;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -27,6 +23,12 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
+import org.apache.http.HttpHeaders;
+import org.apache.http.client.methods.CloseableHttpResponse;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
 import org.jboss.logging.Logger;
 import org.keycloak.email.EmailException;
 import org.keycloak.email.EmailSenderProvider;
@@ -52,8 +54,7 @@ public class NotificationServiceProvider implements EmailSenderProvider {
     private final static String DEFAULT_DATE_TIME_FORMAT = "dd.MM.yyyy HH:mm";
     
     private static final List<String> SUPPORTED = Arrays.asList("RESET_PASSWORD", "TEST_MESSAGE");
-    
-    private final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).build();
+
     
     private String environment;
     
@@ -184,27 +185,25 @@ public class NotificationServiceProvider implements EmailSenderProvider {
             
             log.info(out.getBuffer().toString());     
             
-            HttpRequest request = soap ? HttpRequest.newBuilder()
-                .POST(HttpRequest.BodyPublishers.ofString(out.getBuffer().toString()))
-                .uri(URI.create(requestUrl))
-                .setHeader("User-Agent", "Java 11 HttpClient Bot")
-                .header("Content-Type", "text/xml;charset=UTF-8")
-                .header("Accept-Encoding", "gzip,deflate")
-                .header("SOAPAction", "http://tempuri.org/IMessageSenderSoapService/InsertMessageRequest")
-                .build()
-                :
-              HttpRequest.newBuilder()
-                .POST(HttpRequest.BodyPublishers.ofString(out.getBuffer().toString()))
-                .uri(URI.create(requestUrl))
-                .setHeader("User-Agent", "Java 11 HttpClient Bot")
-                .header("Content-Type", "application/json")
-                .header("Accept-Encoding", "gzip,deflate")
-                .build();
+            HttpPost post = new HttpPost(requestUrl);
             
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            post.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
+            post.addHeader(HttpHeaders.USER_AGENT, "Java Apache HttpClient / " + config.get("fromDisplayName"));
 
-            log.info(response.statusCode());
-            log.info(response.body());
+            if (soap) {
+                post.addHeader(HttpHeaders.CONTENT_TYPE, "text/xml;charset=UTF-8");
+                post.addHeader("SOAPAction", "http://tempuri.org/IMessageSenderSoapService/InsertMessageRequest");
+            } else {
+                post.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+                
+            }
+
+            post.setEntity(new StringEntity(out.getBuffer().toString()));
+
+            try (CloseableHttpClient httpClient = HttpClients.createDefault();
+                 CloseableHttpResponse response = httpClient.execute(post)) {
+                log.info(response.getStatusLine().getStatusCode());
+            }
 
         } catch (Exception e) {
             throw new IllegalStateException(e);
