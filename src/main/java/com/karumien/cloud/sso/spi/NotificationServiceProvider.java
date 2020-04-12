@@ -7,6 +7,10 @@
 package com.karumien.cloud.sso.spi;
 
 import java.io.StringWriter;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -48,6 +52,8 @@ public class NotificationServiceProvider implements EmailSenderProvider {
     private final static String DEFAULT_DATE_TIME_FORMAT = "dd.MM.yyyy HH:mm";
     
     private static final List<String> SUPPORTED = Arrays.asList("RESET_PASSWORD", "TEST_MESSAGE");
+    
+    private final HttpClient httpClient = HttpClient.newBuilder().version(HttpClient.Version.HTTP_2).build();
     
     private String environment;
     
@@ -173,10 +179,33 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         StringWriter out = new StringWriter();
         
         try {
-            Template template = cfg.getTemplate("message-soap.ftl");
+            Template template = cfg.getTemplate(soap ? "message-soap.ftl" : "message-rest.ftl");
             template.process(message, out);
             
-            log.info(out.getBuffer().toString());            
+            log.info(out.getBuffer().toString());     
+            
+            HttpRequest request = soap ? HttpRequest.newBuilder()
+                .POST(HttpRequest.BodyPublishers.ofString(out.getBuffer().toString()))
+                .uri(URI.create(requestUrl))
+                .setHeader("User-Agent", "Java 11 HttpClient Bot")
+                .header("Content-Type", "text/xml;charset=UTF-8")
+                .header("Accept-Encoding", "gzip,deflate")
+                .header("SOAPAction", "http://tempuri.org/IMessageSenderSoapService/InsertMessageRequest")
+                .build()
+                :
+              HttpRequest.newBuilder()
+                .POST(HttpRequest.BodyPublishers.ofString(out.getBuffer().toString()))
+                .uri(URI.create(requestUrl))
+                .setHeader("User-Agent", "Java 11 HttpClient Bot")
+                .header("Content-Type", "application/json")
+                .header("Accept-Encoding", "gzip,deflate")
+                .build();
+            
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+
+            log.info(response.statusCode());
+            log.info(response.body());
+
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
