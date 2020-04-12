@@ -13,7 +13,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 
 import javax.net.ssl.HostnameVerifier;
@@ -71,7 +70,7 @@ public class NotificationServiceProvider implements EmailSenderProvider {
     }
 
     
-    private MessageRequest messageTest() {
+    protected MessageRequest messageTest() {
         MessageRequest message = new MessageRequest();
         message.setMessageCode("TEST");
         
@@ -87,7 +86,7 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         return message;
     }
     
-    private MessageRequest messageResetPassword(String link, String username) {
+    protected MessageRequest messageResetPassword(String link, String username) {
         MessageRequest message = new MessageRequest();
         message.setMessageCode("PASSWORDREQUESTKEYCLOAK");
         
@@ -169,9 +168,8 @@ public class NotificationServiceProvider implements EmailSenderProvider {
             log.info("client: " + config.get("user") + ", secret: " + config.get("password"));
         }
         
-        Configuration cfg = new Configuration(Configuration.VERSION_2_3_0);
+        Configuration cfg = new Configuration(Configuration.DEFAULT_INCOMPATIBLE_IMPROVEMENTS);
         cfg.setDefaultEncoding("UTF-8");
-        cfg.setLocale(Locale.US);
         cfg.setClassForTemplateLoading(NotificationServiceProvider.class, "/templates");
 
         Map<String, Object> context = new HashMap<>();
@@ -182,7 +180,7 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         try {
             Template template = cfg.getTemplate(soap ? "message-soap.ftl" : "message-rest.ftl");
             template.setClassicCompatible(true);
-            template.process(message, out);
+            template.process(context, out);
             
             log.info(out.getBuffer().toString());     
             
