@@ -181,8 +181,8 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         
         try {
             Template template = cfg.getTemplate(soap ? "message-soap.ftl" : "message-rest.ftl");
-            template.process(message, out);
             template.setClassicCompatible(true);
+            template.process(message, out);
             
             log.info(out.getBuffer().toString());     
             
