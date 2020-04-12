@@ -3,16 +3,16 @@
         <InsertMessageRequest xmlns="http://tempuri.org/">
             <Messages>
                 <Message xmlns="http://schemas.datacontract.org/2004/07/MessageSender">
-                    <ClientName><#if message.getClientName()??>${message.getClientName()}<#else> </#if></ClientName>
-                    <ClientNo><#if message.getClientNo()??>${message.getClientNo()}<#else> </#if></ClientNo>
+                    <ClientName><#if (message.getClientName())??>${message.getClientName()}<#else> </#if></ClientName>
+                    <ClientNo><#if (message.getClientNo())??>${message.getClientNo()}<#else> </#if></ClientNo>
                     <ClientTypes></ClientTypes>
-                    <Language><#if message.getLanguage()??>${message.getLanguage()}<#else>en</#if></Language>
+                    <Language><#if (message.getLanguage())??>${message.getLanguage()}<#else>en</#if></Language>
                     <MessageCode>${message.getMessageCode()}</MessageCode>
                     <#list message.getParameters()>
                     <Parameters>
                         <#items as param>
                         <MessageParameter>
-                            <IsVariable><#if param.isIsVariable() == true>true<#else>false</#if></IsVariable>
+                            <IsVariable><#if (param.isIsVariable() == true)>true<#else>false</#if></IsVariable>
                             <ParameterType>${param.getParameterType()}</ParameterType>
                             <Value>${param.getValue()}</Value>
                         </MessageParameter>
