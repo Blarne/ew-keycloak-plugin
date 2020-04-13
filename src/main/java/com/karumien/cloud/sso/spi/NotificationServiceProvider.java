@@ -86,7 +86,7 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         return message;
     }
     
-    protected MessageRequest messageResetPassword(String link, String username) {
+    protected MessageRequest messageResetPassword(String link, String username, Integer validity) {
         MessageRequest message = new MessageRequest();
         message.setMessageCode("PASSWORDREQUESTKEYCLOAK");
         
@@ -108,6 +108,12 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         mp.setIsVariable(false);
         mp.setParameterType(ParameterType.BODY);
         mp.setValue(username);
+        params.add(mp);   
+        
+        mp = new MessageParameter();
+        mp.setIsVariable(false);
+        mp.setParameterType(ParameterType.BODY);
+        mp.setValue(String.valueOf(validity));
         params.add(mp);   
         
         message.setParameters(params);
@@ -139,10 +145,8 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         // Reset password message
         if ("RESET_PASSWORD".equals(subject)) {
 
-            String link = htmlBody.substring(htmlBody.indexOf("<p>") + 3);
-            link = link.substring(0, htmlBody.indexOf("</p>"));
-
-            message = messageResetPassword(link, user.getUsername());
+            String[] data = htmlBody.split("<p>");
+            message = messageResetPassword(data[0], user.getUsername(), minutesToHours(data[1]));
             
         }
 
@@ -182,7 +186,7 @@ public class NotificationServiceProvider implements EmailSenderProvider {
             template.setClassicCompatible(true);
             template.process(context, out);
             
-            log.info(out.getBuffer().toString());     
+            log.info(out.toString());     
             
             HttpPost post = new HttpPost(requestUrl);
             
@@ -194,10 +198,9 @@ public class NotificationServiceProvider implements EmailSenderProvider {
                 post.addHeader("SOAPAction", "http://tempuri.org/IMessageSenderSoapService/InsertMessageRequest");
             } else {
                 post.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-                
             }
 
-            post.setEntity(new StringEntity(out.getBuffer().toString()));
+            post.setEntity(new StringEntity(out.toString()));
 
             try (CloseableHttpClient httpClient = HttpClients.createDefault();
                  CloseableHttpResponse response = httpClient.execute(post)) {
@@ -211,6 +214,14 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         log.info(environment + "->" + message);
     }
     
+    private Integer minutesToHours(String minutes) {
+        try {
+        return Integer.valueOf(minutes) / 60;
+        } catch (Exception e) {
+            return 12;
+        }
+    }
+
     public static void disableCertificatesValidation() {
         TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
 
