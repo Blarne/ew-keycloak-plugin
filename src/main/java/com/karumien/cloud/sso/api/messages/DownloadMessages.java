@@ -19,7 +19,7 @@ public class DownloadMessages {
     public static void main(String[] args) throws IOException {
 
         if (args.length == 0) {
-            System.err.println("USE: java -jar DownloadMessages <api_token> <project_id> <target_folder> <lanuages>");
+            System.err.println("USE: java -jar DownloadMessages <api_token> <project_id> <target_folder> <languages> <type>");
             return;
         }
         
@@ -27,6 +27,7 @@ public class DownloadMessages {
         String project = args[1];
         String targetFolder = args[2];
         String lngs = args[3];
+        String type = args.length > 4 ? args[4] : "properties";
         
         for (String lng : Arrays.asList(lngs.split(","))) {
         
@@ -36,9 +37,9 @@ public class DownloadMessages {
                 lng = lng.substring(0, lng.indexOf(":"));
             } 
 
-            String filename = "messages_"+loc+".properties";
+            String filename = "messages_"+loc+"."+type;
             
-            String data = String.format("api_token=%s&id=%s&language=%s&type=properties", apiToken, project, lng);
+            String data = String.format("api_token=%s&id=%s&language=%s&type="+type, apiToken, project, lng);
             
             String download = HttpDownloadUtility.request("POST", "https://api.poeditor.com/v2/projects/export", data, targetFolder, null);
             
