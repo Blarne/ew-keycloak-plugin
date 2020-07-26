@@ -6,7 +6,9 @@
  */
 package com.karumien.cloud.sso.spi;
 
+import java.io.IOException;
 import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -23,11 +25,15 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
 import org.apache.http.HttpHeaders;
+import org.apache.http.NameValuePair;
+import org.apache.http.client.ClientProtocolException;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicNameValuePair;
 import org.jboss.logging.Logger;
 import org.keycloak.email.EmailException;
 import org.keycloak.email.EmailSenderProvider;
@@ -133,7 +139,6 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         
         boolean auth = "true".equals(config.get("auth"));
         boolean ssl = "true".equals(config.get("ssl"));
-        boolean soap = "true".equals(config.get("starttls"));
         
         MessageRequest message = null;
         
@@ -147,7 +152,6 @@ public class NotificationServiceProvider implements EmailSenderProvider {
 
             String[] data = htmlBody.split("<p>");
             message = messageResetPassword(data[0], user.getUsername(), minutesToHours(data[1]));
-            
         }
 
         if (ssl && !"PROD".equalsIgnoreCase(environment)) {
@@ -167,7 +171,6 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         String requestUrl = String.format("http%s://%s"+ (config.get("port") != null ? ":" + config.get("port"): "") +"%s", 
             (ssl ? "s" : ""), config.get("host"), config.get("replyToDisplayName"));
 
-        log.info("SOAP: " + soap + ", " + requestUrl);
         if (auth) {
             log.info("client: " + config.get("user") + ", secret: " + config.get("password"));
         }
@@ -182,7 +185,7 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         StringWriter out = new StringWriter();
         
         try {
-            Template template = cfg.getTemplate(soap ? "message-soap.ftl" : "message-rest.ftl");
+            Template template = cfg.getTemplate("message-rest.ftl");
             template.setClassicCompatible(true);
             template.process(context, out);
             
@@ -192,14 +195,9 @@ public class NotificationServiceProvider implements EmailSenderProvider {
             
             post.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
             post.addHeader(HttpHeaders.USER_AGENT, "Java Apache HttpClient / " + config.get("fromDisplayName"));
-
-            if (soap) {
-                post.addHeader(HttpHeaders.CONTENT_TYPE, "text/xml;charset=UTF-8");
-                post.addHeader("SOAPAction", "http://tempuri.org/IMessageSenderSoapService/InsertMessageRequest");
-            } else {
-                post.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-            }
-
+            post.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
+            post.addHeader(HttpHeaders.AUTHORIZATION, "Bearer "+ getAccessToken(config));
+            
             post.setEntity(new StringEntity(out.toString()));
 
             try (CloseableHttpClient httpClient = HttpClients.createDefault();
@@ -214,7 +212,11 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         log.info(environment + "->" + message);
     }
     
-    private Integer minutesToHours(String minutes) {
+    private String getAccessToken(Map<String, String> config) throws ClientProtocolException, IOException {
+		return AuthTokenProvider.getInstance().getAccessToken();
+	}
+
+	private Integer minutesToHours(String minutes) {
         try {
         return Integer.valueOf(minutes) / 60;
         } catch (Exception e) {
