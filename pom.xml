@@ -24,7 +24,7 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 
-        <keycloak.version>9.0.3</keycloak.version>
+        <keycloak.version>10.0.1</keycloak.version>
     </properties>
 
     <dependencies>
@@ -110,6 +110,17 @@
             <properties>
                 <picUrl>https://www.gravatar.com/avatar/eaa4704721b5bd598aa335e3f8267c69</picUrl>
             </properties>
+        </developer>
+        <developer>
+            <id>ivo.smajstrla</id>
+            <name>Ivo Šmajstrla</name>
+            <email>ivo.smajstrla@karumien.com</email>
+            <url>https://www.linkedin.com/in/smajstrla/</url>
+            <organization>Karumien s.r.o.</organization>
+            <organizationUrl>http://www.karumien.com</organizationUrl>
+            <roles>
+                <role>developer</role>
+            </roles>
         </developer>
     </developers>
 
