@@ -50,8 +50,7 @@ public class AuthTokenProvider {
 		config.put(CONFIG_KEY_API_METHOD, "/soap2rest/message-sender/InsertMessageRequest");
 		return getAccessToken(config);
 	}
-	
-	@SuppressWarnings("unchecked")
+	 
 	public String getAccessToken(Map<String, String> config) throws ClientProtocolException, IOException {
 		List<NameValuePair> params = new ArrayList<NameValuePair>();
 		params.add(new BasicNameValuePair("grant_type", "client_credentials"));
@@ -70,10 +69,12 @@ public class AuthTokenProvider {
 				String json = EntityUtils.toString(entity, StandardCharsets.UTF_8);
 				// convert JSON string to Map
 				
-				Map<String, String> res = (Map<String, String>) mapper.readValue(json, Map.class);
+				@SuppressWarnings("rawtypes")
+				Map res = mapper.readValue(json, Map.class);
 				
-				String token = res.get(RESPONSE_KEY_ACCESS_TOKEN);
-				Integer validity = Integer.valueOf(res.get(RESPONSE_KEY_EXPIRES_IN_SECONDS));
+				String token = (String) res.get(RESPONSE_KEY_ACCESS_TOKEN);
+				Integer validity = (Integer) res.get(RESPONSE_KEY_EXPIRES_IN_SECONDS);
+				System.out.println(validity);
 				//TODO: validity
 				return token;
 			}
