@@ -6,8 +6,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Properties;
-import java.util.Timer;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
@@ -24,10 +22,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class AuthTokenProvider {
 	public static final String RESPONSE_KEY_ACCESS_TOKEN = "access_token";
+	public static final String RESPONSE_KEY_EXPIRES_IN_SECONDS = "expires_in";
 	public static final String CONFIG_KEY_AUTH_URL = "AUTH_URL";
 	public static final String CONFIG_KEY_CLIENT_ID = "client_id";
 	public static final String CONFIG_KEY_CLIENT_SECRET = "client_secret";
 	public static final String CONFIG_KEY_SCOPE = "scope";
+	public static final String CONFIG_KEY_API_GW = "api-gw";
+	public static final String CONFIG_KEY_API_METHOD = "api-method";
 	
 	private static final AuthTokenProvider instance = new AuthTokenProvider();
 	
@@ -45,7 +46,8 @@ public class AuthTokenProvider {
 		config.put(CONFIG_KEY_CLIENT_ID, "b2703990-fb97-4def-940c-acebf41c1303");
 		config.put(CONFIG_KEY_CLIENT_SECRET, "wt0zIXX2Hsit~YyG1.G3U4-8.fQ~0rBM.-");
 		config.put(CONFIG_KEY_SCOPE, "api://dih/.default");
-
+		config.put(CONFIG_KEY_API_GW, "https://api-test.wag-test.local");
+		config.put(CONFIG_KEY_API_METHOD, "/soap2rest/message-sender/InsertMessageRequest");
 		return getAccessToken(config);
 	}
 	
@@ -67,7 +69,12 @@ public class AuthTokenProvider {
 			if (entity != null) {
 				String json = EntityUtils.toString(entity, StandardCharsets.UTF_8);
 				// convert JSON string to Map
-				String token = ((Map<String, String>) mapper.readValue(json, Map.class)).get(RESPONSE_KEY_ACCESS_TOKEN);
+				
+				Map<String, String> res = (Map<String, String>) mapper.readValue(json, Map.class);
+				
+				String token = res.get(RESPONSE_KEY_ACCESS_TOKEN);
+				Integer validity = Integer.valueOf(res.get(RESPONSE_KEY_EXPIRES_IN_SECONDS));
+				//TODO: validity
 				return token;
 			}
 		}

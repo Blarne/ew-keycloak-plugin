@@ -1,11 +1,8 @@
 package com.karumien.cloud.sso.api.model;
 
 import java.io.Serializable;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 
-import javax.validation.Valid;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
@@ -31,18 +28,25 @@ public class MessageRequest  implements Serializable {
   @JsonProperty("messageCode")
   private String messageCode = null;
 
-  @JsonProperty("parameters")
-  @Valid
-  private List<MessageParameter> parameters = null;
-
+ 
   @JsonProperty("recipients")
-  @Valid
-  private List<MessageRecipient> recipients = null;
+  private MessageRecipients recipients = null;
+
+  @JsonProperty("parameters")
+  private MessageParameters parameters = null;
 
   @JsonProperty("source")
   private String source = null;
 
-  public MessageRequest clientName(String clientName) {
+  public void setRecipients(MessageRecipients recipients) {
+	this.recipients = recipients;
+}
+
+public void setParameters(MessageParameters parameters) {
+	this.parameters = parameters;
+}
+
+public MessageRequest clientName(String clientName) {
     this.clientName = clientName;
     return this;
   }
@@ -115,61 +119,7 @@ public class MessageRequest  implements Serializable {
 
   public void setMessageCode(String messageCode) {
     this.messageCode = messageCode;
-  }
-
-  public MessageRequest parameters(List<MessageParameter> parameters) {
-    this.parameters = parameters;
-    return this;
-  }
-
-  public MessageRequest addParametersItem(MessageParameter parametersItem) {
-    if (this.parameters == null) {
-      this.parameters = new ArrayList<>();
-    }
-    this.parameters.add(parametersItem);
-    return this;
-  }
-
-  /**
-   * Get parameters
-   * @return parameters
-  **/
-  @Valid
-
-  public List<MessageParameter> getParameters() {
-    return parameters;
-  }
-
-  public void setParameters(List<MessageParameter> parameters) {
-    this.parameters = parameters;
-  }
-
-  public MessageRequest recipients(List<MessageRecipient> recipients) {
-    this.recipients = recipients;
-    return this;
-  }
-
-  public MessageRequest addRecipientsItem(MessageRecipient recipientsItem) {
-    if (this.recipients == null) {
-      this.recipients = new ArrayList<>();
-    }
-    this.recipients.add(recipientsItem);
-    return this;
-  }
-
-  /**
-   * Get recipients
-   * @return recipients
-  **/
-  @Valid
-
-  public List<MessageRecipient> getRecipients() {
-    return recipients;
-  }
-
-  public void setRecipients(List<MessageRecipient> recipients) {
-    this.recipients = recipients;
-  }
+  }  
 
   public MessageRequest source(String source) {
     this.source = source;
