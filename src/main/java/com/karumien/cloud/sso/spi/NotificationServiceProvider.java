@@ -195,7 +195,13 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         Map<String, Object> context = new HashMap<>();
         context.put("message", message);
         
-        try {
+        createAndSend(context, config, message, requestUrl, true);
+
+        log.info(environment + "->" + message);
+    }
+
+	private void createAndSend(Map<String, Object> context, Map<String, String> config, MessageRequest message, String requestUrl, boolean firstAttempt) {
+		try {
 //            Template template = cfg.getTemplate("message-rest.ftl");
 //            template.setClassicCompatible(true);
 //            template.process(context, out);
@@ -216,14 +222,17 @@ public class NotificationServiceProvider implements EmailSenderProvider {
             try (CloseableHttpClient httpClient = HttpClients.createDefault();
                  CloseableHttpResponse response = httpClient.execute(post)) {
                 log.info(response.getStatusLine().getStatusCode());
+                if(response.getStatusLine().getStatusCode() == 401 && firstAttempt) {
+                	//only one repeat to avoid deep recursion. If the second attempt with fresh token is also 401 it doesn't make sense to try again anyway.
+                	AuthTokenProvider.getInstance().clearTokenCache();
+                	createAndSend(context, config, message, requestUrl, false);
+                }
             }
 
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
-
-        log.info(environment + "->" + message);
-    }
+	}
     
     private String getAccessToken(Map<String, String> config) throws ClientProtocolException, IOException {
 		return AuthTokenProvider.getInstance().getAccessToken();

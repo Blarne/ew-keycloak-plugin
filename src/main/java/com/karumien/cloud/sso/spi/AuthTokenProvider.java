@@ -2,6 +2,8 @@ package com.karumien.cloud.sso.spi;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -17,10 +19,14 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicNameValuePair;
 import org.apache.http.util.EntityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public class AuthTokenProvider {
+	private final Logger logger = LoggerFactory.getLogger(AuthTokenProvider.class);
+	
 	public static final String RESPONSE_KEY_ACCESS_TOKEN = "access_token";
 	public static final String RESPONSE_KEY_EXPIRES_IN_SECONDS = "expires_in";
 	public static final String CONFIG_KEY_AUTH_URL = "AUTH_URL";
@@ -34,10 +40,22 @@ public class AuthTokenProvider {
 	
 	private final ObjectMapper mapper = new ObjectMapper();
 	
+	private String currentToken;
+	private Instant tokenExpiration;
+	
+	/** to be sure that requestor is able to use old token before actual expiration, we call for new token in advance */
+	private final int tokenValiditySecondsReduce = 10;
+	
 	private AuthTokenProvider() { }
 	
 	public static final AuthTokenProvider getInstance() {
 		return instance;
+	}
+	
+	public void clearTokenCache() {
+		logger.debug("clearing token cache");
+		this.currentToken = null;
+		this.tokenExpiration = null;
 	}
 	
 	public String getAccessToken() throws ClientProtocolException, IOException {
@@ -51,7 +69,12 @@ public class AuthTokenProvider {
 		return getAccessToken(config);
 	}
 	 
-	public String getAccessToken(Map<String, String> config) throws ClientProtocolException, IOException {
+	private String getAccessToken(Map<String, String> config) throws ClientProtocolException, IOException {
+		if(currentToken != null && tokenExpiration != null && Instant.now().isBefore(tokenExpiration) ) {
+			return currentToken;
+		}
+		
+		logger.debug("Going to obtain a new token..");
 		List<NameValuePair> params = new ArrayList<NameValuePair>();
 		params.add(new BasicNameValuePair("grant_type", "client_credentials"));
 		params.add(new BasicNameValuePair("client_id", config.get(CONFIG_KEY_CLIENT_ID)));
@@ -68,25 +91,32 @@ public class AuthTokenProvider {
 			if (entity != null) {
 				String json = EntityUtils.toString(entity, StandardCharsets.UTF_8);
 				// convert JSON string to Map
-				
 				@SuppressWarnings("rawtypes")
 				Map res = mapper.readValue(json, Map.class);
 				
-				String token = (String) res.get(RESPONSE_KEY_ACCESS_TOKEN);
+				currentToken = (String) res.get(RESPONSE_KEY_ACCESS_TOKEN);
 				Integer validity = (Integer) res.get(RESPONSE_KEY_EXPIRES_IN_SECONDS);
-				System.out.println(validity);
-				//TODO: validity
-				return token;
+				if(validity != null) {
+					tokenExpiration = Instant.now().plus((validity-tokenValiditySecondsReduce), ChronoUnit.SECONDS);
+				}
+				logger.debug("New token validity is {} seconds. Expiration set to {}", validity, tokenExpiration);
+				
+				return currentToken;
 			}
 		}
 
+		logger.warn("Something went wrong, no token available.");
 		return null;
 	}
 	
 	public static void main(String[] args) {
 		try {
-			String token = new AuthTokenProvider().getAccessToken();
-			System.out.println("obtained access token: " + token);
+			String token1 = getInstance().getAccessToken();
+			System.out.println("obtained access token: " + token1);
+			Thread.sleep(10000);
+			String token2 = getInstance().getAccessToken();
+			boolean equals = token1.equals(token2);
+			System.out.println("token2 equals original: " + equals);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
