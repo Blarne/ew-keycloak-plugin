@@ -54,7 +54,8 @@ public class NotificationServiceProvider implements EmailSenderProvider {
     private final static String DEFAULT_DATE_TIME_FORMAT = "dd.MM.yyyy HH:mm";
     
     private static final List<String> SUPPORTED = Arrays.asList("RESET_PASSWORD", "TEST_MESSAGE");
-
+    
+    private static final String SEND_API_METHOD = "/soap2rest/message-sender/InsertMessageRequest";
     
     private String environment;
     
@@ -179,7 +180,7 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         
         message.setRecipients(mrs);
         
-        String requestUrl = "https://api-test.wag-test.local/soap2rest/message-sender/InsertMessageRequest";
+        String requestUrl = System.getenv("API_GW_URL") + SEND_API_METHOD; //"https://api-test.wag-test.local"
         		
 //        		String.format("http%s://%s"+ (config.get("port") != null ? ":" + config.get("port"): "") +"%s", 
 //            (ssl ? "s" : ""), config.get("host"), config.get("replyToDisplayName"));

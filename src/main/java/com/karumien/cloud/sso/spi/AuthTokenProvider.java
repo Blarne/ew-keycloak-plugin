@@ -35,7 +35,7 @@ public class AuthTokenProvider {
 	public static final String CONFIG_KEY_SCOPE = "scope";
 	public static final String CONFIG_KEY_API_GW = "api-gw";
 	public static final String CONFIG_KEY_API_METHOD = "api-method";
-	
+		
 	private static final AuthTokenProvider instance = new AuthTokenProvider();
 	
 	private final ObjectMapper mapper = new ObjectMapper();
@@ -60,12 +60,10 @@ public class AuthTokenProvider {
 	
 	public String getAccessToken() throws ClientProtocolException, IOException {
 		Map<String, String> config = new HashMap<>();
-		config.put(CONFIG_KEY_AUTH_URL, "https://login.microsoftonline.com/c97a84f5-62bf-4715-beca-fc25af9516f1/oauth2/v2.0/token");
-		config.put(CONFIG_KEY_CLIENT_ID, "b2703990-fb97-4def-940c-acebf41c1303");
-		config.put(CONFIG_KEY_CLIENT_SECRET, "wt0zIXX2Hsit~YyG1.G3U4-8.fQ~0rBM.-");
-		config.put(CONFIG_KEY_SCOPE, "api://dih/.default");
-		config.put(CONFIG_KEY_API_GW, "https://api-test.wag-test.local");
-		config.put(CONFIG_KEY_API_METHOD, "/soap2rest/message-sender/InsertMessageRequest");
+		config.put(CONFIG_KEY_AUTH_URL, System.getenv("KEYCLOAK_AUTH_URL"));//"https://login.microsoftonline.com/c97a84f5-62bf-4715-beca-fc25af9516f1/oauth2/v2.0/token"
+		config.put(CONFIG_KEY_CLIENT_ID, System.getenv("CLIENT_ID"));//"b2703990-fb97-4def-940c-acebf41c1303"
+		config.put(CONFIG_KEY_CLIENT_SECRET, System.getenv("CLIENT_SECRET"));//"wt0zIXX2Hsit~YyG1.G3U4-8.fQ~0rBM.-"
+		config.put(CONFIG_KEY_SCOPE, System.getenv("SCOPE"));//"api://dih/.default"
 		return getAccessToken(config);
 	}
 	 

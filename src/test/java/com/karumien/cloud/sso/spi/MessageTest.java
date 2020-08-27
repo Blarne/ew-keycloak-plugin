@@ -31,6 +31,8 @@ import com.karumien.cloud.sso.api.model.MessageRecipients;
 import com.karumien.cloud.sso.api.model.MessageRequest;
  
 public class MessageTest {
+	
+	private static final String SEND_API_METHOD = "/soap2rest/message-sender/InsertMessageRequest";
 
     public static void main(String[] args) throws IOException  {
 
@@ -50,8 +52,6 @@ public class MessageTest {
         
         message.setRecipients(mrs);
          
-//        
-//        
 //        Configuration cfg = new Configuration(Configuration.DEFAULT_INCOMPATIBLE_IMPROVEMENTS);
 ////        cfg.setObjectWrapper(new DefaultObjectWrapper(Configuration.DEFAULT_INCOMPATIBLE_IMPROVEMENTS));
 //        cfg.setDefaultEncoding("UTF-8");
@@ -80,26 +80,22 @@ public class MessageTest {
 		try {
 			TrustStrategy acceptingTrustStrategy = (cert, authType) -> true;
 			SSLContext sslContext = SSLContexts.custom().loadTrustMaterial(null, acceptingTrustStrategy).build();
-			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext,
-					NoopHostnameVerifier.INSTANCE);
+			SSLConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(sslContext, NoopHostnameVerifier.INSTANCE);
 
 			Registry<ConnectionSocketFactory> socketFactoryRegistry = RegistryBuilder.<ConnectionSocketFactory>create()
 					.register("https", sslsf).register("http", new PlainConnectionSocketFactory()).build();
 
-			BasicHttpClientConnectionManager connectionManager = new BasicHttpClientConnectionManager(
-					socketFactoryRegistry);
+			BasicHttpClientConnectionManager connectionManager = new BasicHttpClientConnectionManager(socketFactoryRegistry);
 			CloseableHttpClient httpClient = HttpClients.custom().setSSLSocketFactory(sslsf)
 					.setConnectionManager(connectionManager).build();
 
-			String requestUrl = "https://api-test.wag-test.local/soap2rest/message-sender/InsertMessageRequest";
-			
+			String requestUrl = System.getenv("API_GW_URL") + SEND_API_METHOD; //"https://api-test.wag-test.local"
 			HttpPost post = new HttpPost(requestUrl);
 			post.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
 			post.addHeader(HttpHeaders.USER_AGENT, "local test");
 			post.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
 			
 			String token = AuthTokenProvider.getInstance().getAccessToken();
-			System.out.println(token);
 			post.addHeader(HttpHeaders.AUTHORIZATION, "Bearer "+ token);
 			post.setEntity(new StringEntity(out));
 			
