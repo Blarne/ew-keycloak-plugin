@@ -7,6 +7,9 @@
 package com.karumien.cloud.sso.spi;
 
 import java.io.IOException;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -15,19 +18,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.net.ssl.HostnameVerifier;
-import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLSession;
-import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
 
 import org.apache.http.HttpHeaders;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
+import org.apache.http.conn.ssl.NoopHostnameVerifier;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.ssl.SSLContextBuilder;
 import org.jboss.logging.Logger;
 import org.keycloak.email.EmailException;
 import org.keycloak.email.EmailSenderProvider;
@@ -50,7 +56,7 @@ import com.karumien.cloud.sso.api.model.ParameterType;
 public class NotificationServiceProvider implements EmailSenderProvider {
 
     private static final Logger log = Logger.getLogger(NotificationServiceProvider.class);
-    private final static String DEFAULT_DATE_TIME_FORMAT = "dd.MM.yyyy HH:mm";
+    private static final String DEFAULT_DATE_TIME_FORMAT = "dd.MM.yyyy HH:mm";
     
     private static final List<String> SUPPORTED = Arrays.asList("RESET_PASSWORD", "TEST_MESSAGE");
     
@@ -140,6 +146,7 @@ public class NotificationServiceProvider implements EmailSenderProvider {
     public void send(Map<String, String> config, UserModel user, String subject, String textBody, String htmlBody) throws EmailException {
         
         if (!SUPPORTED.contains(subject)) {
+        	log.error("Unsupported operation: " + subject);
             return;
         }
         
@@ -157,20 +164,17 @@ public class NotificationServiceProvider implements EmailSenderProvider {
             message = messageResetPassword(data[0], user.getUsername(), minutesToHours(data[1]));
         }
 
-        if (!"PROD".equalsIgnoreCase(environment)) {
-            disableCertificatesValidation();
-        }
-        
         List<MessageRecipient> recipients = new ArrayList<>();
         MessageRecipient recipient = new MessageRecipient();
-        recipient.setName(user.getFirstName() + " " + user.getLastName());
+        recipient.setName((user.getFirstName() != null ? user.getFirstName() + " " : "" )
+        	+ user.getLastName() != null ? user.getLastName() : "");
         recipient.setAddress(user.getEmail());
         recipients.add(recipient);        
         
-        message.setSource(config.get("fromDisplayName"));
-        message.setLanguage(user.getFirstAttribute("locale"));
+        message.setSource("CIAM");
+        String lang = user.getFirstAttribute("locale");
+        message.setLanguage(lang != null ? lang : "en");
       
-
         MessageRecipients mrs = new MessageRecipients();
         mrs.setMessageRecipient(recipients);
         
@@ -184,7 +188,6 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         
         createAndSend(context, config, message, requestUrl, true);
 
-        log.info(environment + "->" + message);
     }
 
 	private void createAndSend(Map<String, Object> context, Map<String, String> config, MessageRequest message, String requestUrl, boolean firstAttempt) {
@@ -192,16 +195,23 @@ public class NotificationServiceProvider implements EmailSenderProvider {
 
             HttpPost post = new HttpPost(requestUrl);
             
+            String bearer = getAccessToken(config);
+            
             post.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
             post.addHeader(HttpHeaders.USER_AGENT, "Java Apache HttpClient / " + config.get("fromDisplayName"));
             post.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
-            post.addHeader(HttpHeaders.AUTHORIZATION, "Bearer "+ getAccessToken(config));
+            post.addHeader(HttpHeaders.AUTHORIZATION, "Bearer "+ bearer);
             
             ObjectMapper mapper = new ObjectMapper(); 
             
-            post.setEntity(new StringEntity(" { messages: [ " + mapper.writeValueAsString(message) + " ] } "));
+            String raw = " { \"messages\": {\r\n"
+            		+ "    \"message\": [ " + mapper.writeValueAsString(message) + " ] } }";
+            log.info("POST " + post.getURI() + "\nBearer: " + bearer +  "\n" + raw);
+            
+            post.setEntity(new StringEntity(raw));
 
-            try (CloseableHttpClient httpClient = HttpClients.createDefault();
+            
+            try (CloseableHttpClient httpClient = getHttpClient();
                  CloseableHttpResponse response = httpClient.execute(post)) {
                 log.info(response.getStatusLine().getStatusCode());
                 if(response.getStatusLine().getStatusCode() == 401 && firstAttempt) {
@@ -209,11 +219,41 @@ public class NotificationServiceProvider implements EmailSenderProvider {
                 	AuthTokenProvider.getInstance().clearTokenCache();
                 	createAndSend(context, config, message, requestUrl, false);
                 }
+                if (response.getStatusLine().getStatusCode() != 200) {
+                	throw new IllegalStateException("Not returned status 200");
+                }
             }
 
         } catch (Exception e) {
             throw new IllegalStateException(e);
         }
+	}
+	
+	private CloseableHttpClient getHttpClient() throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
+		
+        if (!"PROD".equalsIgnoreCase(environment)) {
+        	log.info("Disabling Certification Validation NONPROD");
+
+        	 final SSLContext sslContext = new SSLContextBuilder()
+                     .loadTrustMaterial(null, (x509CertChain, authType) -> true)
+                     .build();
+
+             return HttpClientBuilder.create()
+                     .setSSLContext(sslContext)
+                     .setConnectionManager(
+                             new PoolingHttpClientConnectionManager(
+                                     RegistryBuilder.<ConnectionSocketFactory>create()
+                                             .register("http", PlainConnectionSocketFactory.INSTANCE)
+                                             .register("https", new SSLConnectionSocketFactory(sslContext,
+                                                     NoopHostnameVerifier.INSTANCE))
+                                             .build()
+                             ))
+                     .build();
+
+        } else {
+        	return HttpClients.createDefault();
+        }        
+		
 	}
     
     private String getAccessToken(Map<String, String> config) throws IOException {
@@ -228,35 +268,4 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         }
     }
 
-    public static void disableCertificatesValidation() {
-        TrustManager[] trustAllCerts = new TrustManager[] { new X509TrustManager() {
-
-            @Override
-            public java.security.cert.X509Certificate[] getAcceptedIssuers() {
-                return null;
-            }
-
-            @Override
-            public void checkClientTrusted(java.security.cert.X509Certificate[] certs, String authType) {
-            }
-
-            @Override
-            public void checkServerTrusted(java.security.cert.X509Certificate[] certs, String authType) {
-            }
-        } };
-
-        // Install the all-trusting trust manager
-        try {
-            SSLContext sc = SSLContext.getInstance("SSL");
-            sc.init(null, trustAllCerts, new java.security.SecureRandom());
-            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory());
-            HttpsURLConnection.setDefaultHostnameVerifier(new HostnameVerifier() {
-                public boolean verify(String hostname, SSLSession session) {
-                    return true;
-                }
-            });
-        } catch (Exception e) {
-        }
-    }
-    
 }

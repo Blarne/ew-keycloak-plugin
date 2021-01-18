@@ -8,19 +8,14 @@ import javax.validation.Valid;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
+import lombok.Data;
+
+@Data
 public class MessageParameters implements Serializable {
 	private static final long serialVersionUID = 1L;
 
 	@JsonProperty("messageParameter")
 	@Valid
 	private List<MessageParameter> messageParameter = new ArrayList<>();
-
-	public List<MessageParameter> getMessageParameter() {
-		return messageParameter;
-	}
-
-	public void setMessageParameter(List<MessageParameter> messageParameter) {
-		this.messageParameter = messageParameter;
-	}
 
 }
