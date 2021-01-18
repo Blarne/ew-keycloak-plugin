@@ -23,7 +23,6 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
 import org.apache.http.HttpHeaders;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -144,9 +143,6 @@ public class NotificationServiceProvider implements EmailSenderProvider {
             return;
         }
         
-        // boolean auth = "true".equals(config.get("auth"));
-        boolean ssl = true; // "true".equals(config.get("ssl"));
-        
         MessageRequest message = null;
         
         // Test message
@@ -161,7 +157,7 @@ public class NotificationServiceProvider implements EmailSenderProvider {
             message = messageResetPassword(data[0], user.getUsername(), minutesToHours(data[1]));
         }
 
-        if (ssl && !"PROD".equalsIgnoreCase(environment)) {
+        if (!"PROD".equalsIgnoreCase(environment)) {
             disableCertificatesValidation();
         }
         
@@ -180,19 +176,9 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         
         message.setRecipients(mrs);
         
-        String requestUrl = System.getenv("API_GW_URL") + SEND_API_METHOD; //"https://api-test.wag-test.local"
-        		
-//        		String.format("http%s://%s"+ (config.get("port") != null ? ":" + config.get("port"): "") +"%s", 
-//            (ssl ? "s" : ""), config.get("host"), config.get("replyToDisplayName"));
-//
-//        if (auth) {
-//            log.info("client: " + config.get("user") + ", secret: " + config.get("password"));
-//        }
-        
-//        Configuration cfg = new Configuration(Configuration.DEFAULT_INCOMPATIBLE_IMPROVEMENTS);
-//        cfg.setDefaultEncoding("UTF-8");
-//        cfg.setClassForTemplateLoading(NotificationServiceProvider.class, "/templates");
-
+//        String requestUrl = System.getenv("API_GW_URL") + SEND_API_METHOD; 
+        String requestUrl = "https://api-test.wag-test.local" + SEND_API_METHOD;
+		
         Map<String, Object> context = new HashMap<>();
         context.put("message", message);
         
@@ -203,12 +189,7 @@ public class NotificationServiceProvider implements EmailSenderProvider {
 
 	private void createAndSend(Map<String, Object> context, Map<String, String> config, MessageRequest message, String requestUrl, boolean firstAttempt) {
 		try {
-//            Template template = cfg.getTemplate("message-rest.ftl");
-//            template.setClassicCompatible(true);
-//            template.process(context, out);
-//            
-//            log.info(out.toString());     
-//            
+
             HttpPost post = new HttpPost(requestUrl);
             
             post.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
@@ -235,7 +216,7 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         }
 	}
     
-    private String getAccessToken(Map<String, String> config) throws ClientProtocolException, IOException {
+    private String getAccessToken(Map<String, String> config) throws IOException {
 		return AuthTokenProvider.getInstance().getAccessToken();
 	}
 

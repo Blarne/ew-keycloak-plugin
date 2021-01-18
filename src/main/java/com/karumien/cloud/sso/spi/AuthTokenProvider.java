@@ -11,7 +11,6 @@ import java.util.Map;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.NameValuePair;
-import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpPost;
@@ -44,7 +43,7 @@ public class AuthTokenProvider {
 	private Instant tokenExpiration;
 	
 	/** to be sure that requestor is able to use old token before actual expiration, we call for new token in advance */
-	private final int tokenValiditySecondsReduce = 10;
+	private static final int TOKE_VAIDITY_SECONDS_REDUCE = 10;
 	
 	private AuthTokenProvider() { }
 	
@@ -58,22 +57,26 @@ public class AuthTokenProvider {
 		this.tokenExpiration = null;
 	}
 	
-	public String getAccessToken() throws ClientProtocolException, IOException {
+	public String getAccessToken() throws IOException {
 		Map<String, String> config = new HashMap<>();
-		config.put(CONFIG_KEY_AUTH_URL, System.getenv("KEYCLOAK_AUTH_URL"));//"https://login.microsoftonline.com/c97a84f5-62bf-4715-beca-fc25af9516f1/oauth2/v2.0/token"
-		config.put(CONFIG_KEY_CLIENT_ID, System.getenv("CLIENT_ID"));//"b2703990-fb97-4def-940c-acebf41c1303"
-		config.put(CONFIG_KEY_CLIENT_SECRET, System.getenv("CLIENT_SECRET"));//"wt0zIXX2Hsit~YyG1.G3U4-8.fQ~0rBM.-"
-		config.put(CONFIG_KEY_SCOPE, System.getenv("SCOPE"));//"api://dih/.default"
+		config.put(CONFIG_KEY_AUTH_URL, "https://login.microsoftonline.com/c97a84f5-62bf-4715-beca-fc25af9516f1/oauth2/v2.0/token");
+		config.put(CONFIG_KEY_CLIENT_ID, "b2703990-fb97-4def-940c-acebf41c1303");
+		config.put(CONFIG_KEY_CLIENT_SECRET, "wt0zIXX2Hsit~YyG1.G3U4-8.fQ~0rBM.-");
+		config.put(CONFIG_KEY_SCOPE, "api://dih/.default");
+//		config.put(CONFIG_KEY_AUTH_URL, System.getenv("MS_AUTH_URL"));
+//		config.put(CONFIG_KEY_CLIENT_ID, System.getenv("MS_CLIENT_ID"));
+//		config.put(CONFIG_KEY_CLIENT_SECRET, System.getenv("MS_CLIENT_SECRET"));
+//		config.put(CONFIG_KEY_SCOPE, System.getenv("API_GW_SCOPE"));
 		return getAccessToken(config);
 	}
 	 
-	private String getAccessToken(Map<String, String> config) throws ClientProtocolException, IOException {
+	private String getAccessToken(Map<String, String> config) throws IOException {
 		if(currentToken != null && tokenExpiration != null && Instant.now().isBefore(tokenExpiration) ) {
 			return currentToken;
 		}
 		
 		logger.debug("Going to obtain a new token..");
-		List<NameValuePair> params = new ArrayList<NameValuePair>();
+		List<NameValuePair> params = new ArrayList<>();
 		params.add(new BasicNameValuePair("grant_type", "client_credentials"));
 		params.add(new BasicNameValuePair("client_id", config.get(CONFIG_KEY_CLIENT_ID)));
 		params.add(new BasicNameValuePair("client_secret", config.get(CONFIG_KEY_CLIENT_SECRET)));
@@ -95,7 +98,7 @@ public class AuthTokenProvider {
 				currentToken = (String) res.get(RESPONSE_KEY_ACCESS_TOKEN);
 				Integer validity = (Integer) res.get(RESPONSE_KEY_EXPIRES_IN_SECONDS);
 				if(validity != null) {
-					tokenExpiration = Instant.now().plus((validity-tokenValiditySecondsReduce), ChronoUnit.SECONDS);
+					tokenExpiration = Instant.now().plus((validity-TOKE_VAIDITY_SECONDS_REDUCE), ChronoUnit.SECONDS);
 				}
 				logger.debug("New token validity is {} seconds. Expiration set to {}", validity, tokenExpiration);
 				
