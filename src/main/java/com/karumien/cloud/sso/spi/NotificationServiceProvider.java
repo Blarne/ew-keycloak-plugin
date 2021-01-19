@@ -147,7 +147,7 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         
         if (!SUPPORTED.contains(subject)) {
         	log.error("Unsupported operation: " + subject);
-            return;
+            throw new UnsupportedOperationException(subject);
         }
         
         MessageRequest message = null;
@@ -206,7 +206,7 @@ public class NotificationServiceProvider implements EmailSenderProvider {
             
             String raw = " { \"messages\": {\r\n"
             		+ "    \"message\": [ " + mapper.writeValueAsString(message) + " ] } }";
-            log.info("POST " + post.getURI() + "\nBearer: " + bearer +  "\n" + raw);
+            log.info(environment + ": POST " + post.getURI() + "\nBearer: " + bearer +  "\n" + raw);
             
             post.setEntity(new StringEntity(raw));
 
