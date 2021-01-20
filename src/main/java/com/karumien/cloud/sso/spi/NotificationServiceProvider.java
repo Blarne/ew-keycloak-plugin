@@ -58,7 +58,7 @@ public class NotificationServiceProvider implements EmailSenderProvider {
     private static final Logger log = Logger.getLogger(NotificationServiceProvider.class);
     private static final String DEFAULT_DATE_TIME_FORMAT = "dd.MM.yyyy HH:mm";
     
-    private static final List<String> SUPPORTED = Arrays.asList("RESET_PASSWORD", "TEST_MESSAGE");
+    private static final List<String> SUPPORTED = Arrays.asList("RESET_PASSWORD", "TEST_MESSAGE", "EXECUTE_ACTION");
     
     private static final String SEND_API_METHOD = "/soap2rest/message-sender/InsertMessageRequest";
     
@@ -160,7 +160,7 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         // Reset password message
         if ("RESET_PASSWORD".equals(subject) || "EXECUTE_ACTION".equals(subject)) {
             String[] data = textBody.split(",");            
-            message = messageResetPassword(data[0], user.getUsername(), minutesToHours(data[1]));
+            message = messageResetPassword(data[0].trim(), user.getUsername().trim(), minutesToHours(data[1]));
         }
 
         List<MessageRecipient> recipients = new ArrayList<>();
