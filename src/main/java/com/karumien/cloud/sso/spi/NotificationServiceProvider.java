@@ -158,9 +158,8 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         }
         
         // Reset password message
-        if ("RESET_PASSWORD".equals(subject)) {
-
-            String[] data = htmlBody.split("<p>");
+        if ("RESET_PASSWORD".equals(subject) || "EXECUTE_ACTION".equals(subject)) {
+            String[] data = textBody.split(",");            
             message = messageResetPassword(data[0], user.getUsername(), minutesToHours(data[1]));
         }
 
