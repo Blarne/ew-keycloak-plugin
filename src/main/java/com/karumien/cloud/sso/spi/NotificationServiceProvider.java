@@ -179,8 +179,17 @@ public class NotificationServiceProvider implements EmailSenderProvider {
         
         message.setRecipients(mrs);
         
-//        String requestUrl = System.getenv("API_GW_URL") + SEND_API_METHOD; 
-        String requestUrl = "https://api-test.wag-test.local" + SEND_API_METHOD;
+        String api = System.getenv("API_GW_URL");
+
+        if (api == null) {
+	        if ("PROD".equalsIgnoreCase(environment)) {
+	        	api = "https://api.wag.local";
+	        } else {
+	        	api = "https://api-" + environment.toLowerCase() + ".wag-test.local";
+	        }
+        }
+        
+        String requestUrl = api + SEND_API_METHOD;
 		
         Map<String, Object> context = new HashMap<>();
         context.put("message", message);

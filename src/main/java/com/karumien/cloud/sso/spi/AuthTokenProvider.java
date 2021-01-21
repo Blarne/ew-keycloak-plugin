@@ -60,12 +60,16 @@ public class AuthTokenProvider {
 	public String getAccessToken() throws IOException {
 		Map<String, String> config = new HashMap<>();
 		config.put(CONFIG_KEY_AUTH_URL, "https://login.microsoftonline.com/c97a84f5-62bf-4715-beca-fc25af9516f1/oauth2/v2.0/token");
-		config.put(CONFIG_KEY_CLIENT_ID, "b2703990-fb97-4def-940c-acebf41c1303");
-		config.put(CONFIG_KEY_CLIENT_SECRET, "wt0zIXX2Hsit~YyG1.G3U4-8.fQ~0rBM.-");
+//		config.put(CONFIG_KEY_CLIENT_ID, "b2703990-fb97-4def-940c-acebf41c1303");
+//		config.put(CONFIG_KEY_CLIENT_SECRET, "wt0zIXX2Hsit~YyG1.G3U4-8.fQ~0rBM.-");
 		config.put(CONFIG_KEY_SCOPE, "api://dih/.default");
+		
+		String clientId = System.getenv("MS_CLIENT_ID");
+		String clientSecret = System.getenv("MS_CLIENT_SECRET");
+		
+		config.put(CONFIG_KEY_CLIENT_ID, clientId != null ? clientId : "b2703990-fb97-4def-940c-acebf41c1303");
+		config.put(CONFIG_KEY_CLIENT_SECRET, clientSecret != null ? clientSecret : "wt0zIXX2Hsit~YyG1.G3U4-8.fQ~0rBM.-");
 //		config.put(CONFIG_KEY_AUTH_URL, System.getenv("MS_AUTH_URL"));
-//		config.put(CONFIG_KEY_CLIENT_ID, System.getenv("MS_CLIENT_ID"));
-//		config.put(CONFIG_KEY_CLIENT_SECRET, System.getenv("MS_CLIENT_SECRET"));
 //		config.put(CONFIG_KEY_SCOPE, System.getenv("API_GW_SCOPE"));
 		return getAccessToken(config);
 	}
