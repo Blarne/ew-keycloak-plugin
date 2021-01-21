@@ -31,7 +31,6 @@ import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
 import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
 import org.apache.http.ssl.SSLContextBuilder;
 import org.jboss.logging.Logger;
@@ -239,8 +238,8 @@ public class NotificationServiceProvider implements EmailSenderProvider {
 	
 	private CloseableHttpClient getHttpClient() throws KeyManagementException, NoSuchAlgorithmException, KeyStoreException {
 		
-        if (!"PROD".equalsIgnoreCase(environment)) {
-        	log.info("Disabling Certification Validation NONPROD");
+//        if (!"PROD".equalsIgnoreCase(environment)) {
+        	log.info("Disabling Certification Validation");
 
         	 final SSLContext sslContext = new SSLContextBuilder()
                      .loadTrustMaterial(null, (x509CertChain, authType) -> true)
@@ -258,9 +257,9 @@ public class NotificationServiceProvider implements EmailSenderProvider {
                              ))
                      .build();
 
-        } else {
-        	return HttpClients.createDefault();
-        }        
+//        } else {
+//        	return HttpClients.createDefault();
+//        }        
 		
 	}
     
