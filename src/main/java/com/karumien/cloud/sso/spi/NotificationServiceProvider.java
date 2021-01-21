@@ -28,6 +28,7 @@ import org.apache.http.conn.socket.ConnectionSocketFactory;
 import org.apache.http.conn.socket.PlainConnectionSocketFactory;
 import org.apache.http.conn.ssl.NoopHostnameVerifier;
 import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
@@ -206,7 +207,6 @@ public class NotificationServiceProvider implements EmailSenderProvider {
             
             post.addHeader(HttpHeaders.ACCEPT_ENCODING, "gzip,deflate");
             post.addHeader(HttpHeaders.USER_AGENT, "Java Apache HttpClient / " + config.get("fromDisplayName"));
-            post.addHeader(HttpHeaders.CONTENT_TYPE, "application/json");
             post.addHeader(HttpHeaders.AUTHORIZATION, "Bearer "+ bearer);
             
             ObjectMapper mapper = new ObjectMapper(); 
@@ -215,7 +215,7 @@ public class NotificationServiceProvider implements EmailSenderProvider {
             		+ "    \"message\": [ " + mapper.writeValueAsString(message) + " ] } }";
             log.info(environment + ": POST " + post.getURI() + "\nBearer: " + bearer +  "\n" + raw);
             
-            post.setEntity(new StringEntity(raw));
+            post.setEntity(new StringEntity(raw, ContentType.APPLICATION_JSON));
 
             
             try (CloseableHttpClient httpClient = getHttpClient();
